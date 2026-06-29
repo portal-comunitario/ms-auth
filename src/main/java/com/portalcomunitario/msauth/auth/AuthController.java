@@ -34,7 +34,8 @@ public class AuthController {
 
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<Map<String, String>> handleInvalidToken(IllegalArgumentException ex) {
-        return ResponseEntity.status(401).body(Map.of("error", ex.getMessage()));
+        String message = ex.getMessage() != null ? ex.getMessage() : "Token inválido";
+        return ResponseEntity.status(401).body(Map.of("error", message));
     }
 
     public record GoogleAuthRequest(String idToken) {}

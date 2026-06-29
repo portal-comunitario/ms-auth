@@ -70,6 +70,8 @@ public class AuthService {
             return idToken.getPayload();
         } catch (GeneralSecurityException | IOException e) {
             throw new IllegalArgumentException("No se pudo validar el idToken de Google", e);
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException("Formato de idToken inválido", e);
         }
     }
 
