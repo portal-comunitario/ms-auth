@@ -52,6 +52,7 @@ public class AuthService {
             nuevo.setEmail(email);
             nuevo.setName(resolvedName);
             nuevo.setRole(User.Role.VECINO);
+            nuevo.setTenantId(null); // asignado por el admin al unirse con código
             return userRepository.save(nuevo);
         });
 
@@ -82,6 +83,7 @@ public class AuthService {
                 .subject(user.getEmail())
                 .claim("name", user.getName())
                 .claim("role", user.getRole().name())
+                .claim("tenantId", user.getTenantId())
                 .issuedAt(now)
                 .expiration(expiration)
                 .signWith(jwtKey)

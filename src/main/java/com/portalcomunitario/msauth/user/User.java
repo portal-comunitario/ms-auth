@@ -32,11 +32,14 @@ public class User {
     @Column(nullable = false, length = 50)
     private Role role;
 
+    @Column(name = "tenant_id", length = 100)
+    private String tenantId;
+
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 
     public enum Role {
-        VECINO, MODERADOR, ADMIN
+        VECINO, COMMUNITY_ADMIN, PLATFORM_ADMIN
     }
 
     @PrePersist
@@ -52,5 +55,7 @@ public class User {
     public void setName(String name) { this.name = name; }
     public Role getRole() { return role; }
     public void setRole(Role role) { this.role = role; }
+    public String getTenantId() { return tenantId; }
+    public void setTenantId(String tenantId) { this.tenantId = tenantId; }
     public LocalDateTime getCreatedAt() { return createdAt; }
 }

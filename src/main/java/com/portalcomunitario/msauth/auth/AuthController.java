@@ -28,7 +28,7 @@ public class AuthController {
         User user = result.user();
         AuthResponse body = new AuthResponse(
                 result.token(),
-                new UserDto(user.getEmail(), user.getName(), user.getRole().name()));
+                new UserDto(user.getEmail(), user.getName(), user.getRole().name(), user.getTenantId()));
         return ResponseEntity.ok(body);
     }
 
@@ -40,5 +40,5 @@ public class AuthController {
 
     public record GoogleAuthRequest(String idToken) {}
     public record AuthResponse(String token, UserDto user) {}
-    public record UserDto(String email, String name, String role) {}
+    public record UserDto(String email, String name, String role, String tenantId) {}
 }
