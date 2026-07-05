@@ -35,6 +35,25 @@ public class User {
     @Column(name = "tenant_id", length = 100)
     private String tenantId;
 
+    @Column(name = "password_hash")
+    private String passwordHash;
+
+    @Column(length = 30)
+    private String telefono;
+
+    @Column(length = 20)
+    private String rut;
+
+    @Column(length = 300)
+    private String direccion;
+
+    @Column(name = "inicio_residencia")
+    private java.time.LocalDate inicioResidencia;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "estado_validacion", length = 20)
+    private EstadoValidacion estadoValidacion;
+
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 
@@ -42,10 +61,15 @@ public class User {
         VECINO, COMMUNITY_ADMIN, PLATFORM_ADMIN
     }
 
+    public enum EstadoValidacion {
+        PENDIENTE, VALIDADO
+    }
+
     @PrePersist
     void prePersist() {
         if (role == null) role = Role.VECINO;
         if (createdAt == null) createdAt = LocalDateTime.now();
+        if (estadoValidacion == null) estadoValidacion = EstadoValidacion.PENDIENTE;
     }
 
     public UUID getId() { return id; }
@@ -57,5 +81,17 @@ public class User {
     public void setRole(Role role) { this.role = role; }
     public String getTenantId() { return tenantId; }
     public void setTenantId(String tenantId) { this.tenantId = tenantId; }
+    public String getPasswordHash() { return passwordHash; }
+    public void setPasswordHash(String passwordHash) { this.passwordHash = passwordHash; }
     public LocalDateTime getCreatedAt() { return createdAt; }
+    public String getTelefono() { return telefono; }
+    public void setTelefono(String telefono) { this.telefono = telefono; }
+    public String getRut() { return rut; }
+    public void setRut(String rut) { this.rut = rut; }
+    public String getDireccion() { return direccion; }
+    public void setDireccion(String direccion) { this.direccion = direccion; }
+    public java.time.LocalDate getInicioResidencia() { return inicioResidencia; }
+    public void setInicioResidencia(java.time.LocalDate inicioResidencia) { this.inicioResidencia = inicioResidencia; }
+    public EstadoValidacion getEstadoValidacion() { return estadoValidacion; }
+    public void setEstadoValidacion(EstadoValidacion estadoValidacion) { this.estadoValidacion = estadoValidacion; }
 }

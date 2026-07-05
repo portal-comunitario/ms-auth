@@ -4,41 +4,58 @@ import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
 import com.google.api.client.http.javanet.NetHttpTransport;
 import com.google.api.client.json.gson.GsonFactory;
+import com.portalcomunitario.msauth.passwordreset.PasswordResetToken;
+import com.portalcomunitario.msauth.passwordreset.PasswordResetTokenRepository;
 import com.portalcomunitario.msauth.user.User;
 import com.portalcomunitario.msauth.user.UserRepository;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 import javax.crypto.SecretKey;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
+import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.Date;
+import java.util.UUID;
 
 @Service
 public class AuthService {
 
     private final UserRepository userRepository;
+    private final PasswordResetTokenRepository resetTokenRepository;
+    private final PasswordEncoder passwordEncoder;
     private final GoogleIdTokenVerifier googleVerifier;
     private final SecretKey jwtKey;
     private final long jwtExpirationMillis;
+    private final String frontendUrl;
 
     public AuthService(UserRepository userRepository,
+                       PasswordResetTokenRepository resetTokenRepository,
+                       PasswordEncoder passwordEncoder,
                        @Value("${app.google.client-id}") String googleClientId,
                        @Value("${app.jwt.secret}") String jwtSecret,
-                       @Value("${app.jwt.expiration}") long jwtExpirationMillis) {
+                       @Value("${app.jwt.expiration}") long jwtExpirationMillis,
+                       @Value("${app.frontend.url:http://localhost:4200}") String frontendUrl) {
         this.userRepository = userRepository;
+        this.resetTokenRepository = resetTokenRepository;
+        this.passwordEncoder = passwordEncoder;
         this.googleVerifier = new GoogleIdTokenVerifier.Builder(
                 new NetHttpTransport(), GsonFactory.getDefaultInstance())
                 .setAudience(Collections.singletonList(googleClientId))
                 .build();
         this.jwtKey = Keys.hmacShaKeyFor(jwtSecret.getBytes(StandardCharsets.UTF_8));
         this.jwtExpirationMillis = jwtExpirationMillis;
+        this.frontendUrl = frontendUrl;
     }
 
+    // ── Google OAuth ────────────────────────────────────────────
     public AuthResult authenticate(String googleIdToken) {
         GoogleIdToken.Payload payload = verifyGoogleToken(googleIdToken);
 
@@ -52,11 +69,109 @@ public class AuthService {
             nuevo.setEmail(email);
             nuevo.setName(resolvedName);
             nuevo.setRole(User.Role.VECINO);
-            nuevo.setTenantId(null); // asignado por el admin al unirse con código
+            nuevo.setTenantId(null);
             return userRepository.save(nuevo);
         });
 
         return new AuthResult(generateJwt(user), user);
+    }
+
+    // ── Registro con correo/contraseña ──────────────────────────
+    public AuthResult register(String name, String email, String password) {
+        email = normalizeEmail(email);
+        if (email == null || password == null || password.length() < 8) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Correo válido y contraseña de al menos 8 caracteres son obligatorios");
+        }
+        if (userRepository.existsByEmail(email)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "Ya existe una cuenta con ese correo. Inicia sesión o usa Google.");
+        }
+        User user = new User();
+        user.setEmail(email);
+        user.setName(name != null && !name.isBlank() ? name.trim() : email);
+        user.setRole(User.Role.VECINO);
+        user.setTenantId(null);
+        user.setPasswordHash(passwordEncoder.encode(password));
+        user = userRepository.save(user);
+        return new AuthResult(generateJwt(user), user);
+    }
+
+    // ── Login con correo/contraseña ─────────────────────────────
+    public AuthResult login(String email, String password) {
+        email = normalizeEmail(email);
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Correo o contraseña incorrectos"));
+        if (user.getPasswordHash() == null || user.getPasswordHash().isBlank()) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED,
+                    "Esta cuenta se creó con Google. Inicia sesión con Google.");
+        }
+        if (!passwordEncoder.matches(password != null ? password : "", user.getPasswordHash())) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Correo o contraseña incorrectos");
+        }
+        return new AuthResult(generateJwt(user), user);
+    }
+
+    // ── Recuperación: generar token (stub sin email) ────────────
+    /** Devuelve el enlace de reseteo (stub — se mostrará/logueará hasta integrar el envío de correo). */
+    public String forgotPassword(String email) {
+        email = normalizeEmail(email);
+        User user = userRepository.findByEmail(email).orElse(null);
+        // Solo tiene sentido para cuentas con contraseña; si no existe, no revelamos nada.
+        if (user == null || user.getPasswordHash() == null) {
+            return null;
+        }
+        PasswordResetToken prt = new PasswordResetToken();
+        prt.setEmail(email);
+        prt.setToken(UUID.randomUUID().toString().replace("-", ""));
+        prt.setExpiresAt(LocalDateTime.now().plusHours(1));
+        prt.setUsed(false);
+        resetTokenRepository.save(prt);
+        return frontendUrl + "/reset?token=" + prt.getToken();
+    }
+
+    // ── Recuperación: aplicar nueva contraseña ──────────────────
+    public void resetPassword(String token, String newPassword) {
+        if (newPassword == null || newPassword.length() < 8) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "La contraseña debe tener al menos 8 caracteres");
+        }
+        PasswordResetToken prt = resetTokenRepository.findByToken(token)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Enlace de recuperación inválido"));
+        if (prt.isUsed() || prt.isExpired()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El enlace de recuperación expiró o ya se usó");
+        }
+        User user = userRepository.findByEmail(prt.getEmail())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Usuario no encontrado"));
+        user.setPasswordHash(passwordEncoder.encode(newPassword));
+        userRepository.save(user);
+        prt.setUsed(true);
+        resetTokenRepository.save(prt);
+    }
+
+    // ── Perfil ────────────────────────────
+    public User getProfile(String email) {
+        return userRepository.findByEmail(normalizeEmail(email))
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado"));
+    }
+
+    public User updateProfile(String email, String name, String telefono, String rut,
+                              String direccion, java.time.LocalDate inicioResidencia) {
+        User user = getProfile(email);
+        if (name != null && !name.isBlank()) user.setName(name.trim());
+        user.setTelefono(blankToNull(telefono));
+        user.setRut(blankToNull(rut));
+        user.setDireccion(blankToNull(direccion));
+        user.setInicioResidencia(inicioResidencia);
+        return userRepository.save(user);
+    }
+
+    private String blankToNull(String v) {
+        return (v == null || v.isBlank()) ? null : v.trim();
+    }
+
+    // ── Helpers ─────────────────────────────────────────────────
+    private String normalizeEmail(String email) {
+        return email == null ? null : email.trim().toLowerCase();
     }
 
     private GoogleIdToken.Payload verifyGoogleToken(String idTokenString) {
@@ -81,6 +196,7 @@ public class AuthService {
         Date expiration = new Date(now.getTime() + jwtExpirationMillis);
         return Jwts.builder()
                 .subject(user.getEmail())
+                .claim("email", user.getEmail())
                 .claim("name", user.getName())
                 .claim("role", user.getRole().name())
                 .claim("tenantId", user.getTenantId())

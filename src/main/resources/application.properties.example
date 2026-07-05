@@ -12,7 +12,7 @@ spring.flyway.enabled=true
 spring.flyway.baseline-on-migrate=true
 
 # Generar con: openssl rand -base64 48
-app.jwt.secret=CAMBIAR_SECRET_JWT
+app.jwt.secret=WKlNqGpLWalKJkJ2ognk91+0F3/U276j3wv4viJjjofpt0oNqy59YnQ85UMLl0a0
 app.jwt.expiration=86400000
 
 app.google.client-id=TU_GOOGLE_CLIENT_ID.apps.googleusercontent.com

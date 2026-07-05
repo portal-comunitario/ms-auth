@@ -25,3 +25,9 @@ Thumbs.db
 # Spring Boot
 spring-shell.log
 
+
+# Claude Code session files
+.claude/
+
+# Artefactos de montaje (no versionar)
+.fuse_hidden*
