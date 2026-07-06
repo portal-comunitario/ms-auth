@@ -54,6 +54,9 @@ public class User {
     @Column(name = "estado_validacion", length = 20)
     private EstadoValidacion estadoValidacion;
 
+    @Column(name = "notificaciones_activas", nullable = false)
+    private boolean notificacionesActivas;
+
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 
@@ -94,4 +97,6 @@ public class User {
     public void setInicioResidencia(java.time.LocalDate inicioResidencia) { this.inicioResidencia = inicioResidencia; }
     public EstadoValidacion getEstadoValidacion() { return estadoValidacion; }
     public void setEstadoValidacion(EstadoValidacion estadoValidacion) { this.estadoValidacion = estadoValidacion; }
+    public boolean isNotificacionesActivas() { return notificacionesActivas; }
+    public void setNotificacionesActivas(boolean notificacionesActivas) { this.notificacionesActivas = notificacionesActivas; }
 }

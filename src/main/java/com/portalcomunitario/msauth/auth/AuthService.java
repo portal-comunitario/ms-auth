@@ -148,20 +148,36 @@ public class AuthService {
         resetTokenRepository.save(prt);
     }
 
+    // ── Gestión de vecinos (dirigente) ──────────────────────────
+    public java.util.List<User> listVecinos() {
+        return userRepository.findAll().stream()
+                .sorted(java.util.Comparator
+                        .comparing((User u) -> u.getEstadoValidacion() == User.EstadoValidacion.VALIDADO)
+                        .thenComparing(User::getName, java.util.Comparator.nullsLast(String::compareToIgnoreCase)))
+                .toList();
+    }
+
+    public User setValidacion(UUID id, User.EstadoValidacion estado) {
+        User u = userRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Vecino no encontrado"));
+        u.setEstadoValidacion(estado);
+        return userRepository.save(u);
+    }
+
     // ── Perfil ────────────────────────────
     public User getProfile(String email) {
         return userRepository.findByEmail(normalizeEmail(email))
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado"));
     }
 
-    public User updateProfile(String email, String name, String telefono, String rut,
-                              String direccion, java.time.LocalDate inicioResidencia) {
+    public User updateProfile(String email, String name, String telefono, boolean notificacionesActivas) {
         User user = getProfile(email);
         if (name != null && !name.isBlank()) user.setName(name.trim());
         user.setTelefono(blankToNull(telefono));
-        user.setRut(blankToNull(rut));
-        user.setDireccion(blankToNull(direccion));
-        user.setInicioResidencia(inicioResidencia);
+        // Solo se pueden activar notificaciones si hay teléfono registrado.
+        boolean tieneTelefono = user.getTelefono() != null && !user.getTelefono().isBlank();
+        user.setNotificacionesActivas(notificacionesActivas && tieneTelefono);
+        // Dirección e inicio de residencia NO se editan aquí: se validan vía certificado.
         return userRepository.save(user);
     }
 

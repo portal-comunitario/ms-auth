@@ -16,3 +16,7 @@ app.jwt.secret=WKlNqGpLWalKJkJ2ognk91+0F3/U276j3wv4viJjjofpt0oNqy59YnQ85UMLl0a0
 app.jwt.expiration=86400000
 
 app.google.client-id=TU_GOOGLE_CLIENT_ID.apps.googleusercontent.com
+
+# Subida de documentos (certificados)
+spring.servlet.multipart.max-file-size=10MB
+spring.servlet.multipart.max-request-size=25MB
