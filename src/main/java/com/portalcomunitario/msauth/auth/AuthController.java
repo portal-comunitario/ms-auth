@@ -131,6 +131,12 @@ public class AuthController {
         authService.deleteVecino(id);
     }
 
+    @PutMapping("/vecinos/{id}/acceso")
+    public VecinoDto acceso(@PathVariable UUID id, @RequestBody AccesoRequest req, Authentication auth) {
+        requireAdmin(auth);
+        return toVecino(authService.setAcceso(id, req.aprobado()));
+    }
+
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<Map<String, String>> handleInvalidToken(IllegalArgumentException ex) {
         String message = ex.getMessage() != null ? ex.getMessage() : "Solicitud inválida";
@@ -153,7 +159,8 @@ public class AuthController {
                 u.getId(), u.getEmail(), u.getName(), u.getRole().name(),
                 u.getEstadoValidacion() != null ? u.getEstadoValidacion().name() : "PENDIENTE",
                 u.getTelefono(), u.getRut(), u.getDireccion(),
-                u.getInicioResidencia() != null ? u.getInicioResidencia().toString() : null);
+                u.getInicioResidencia() != null ? u.getInicioResidencia().toString() : null,
+                u.isAccesoAprobado());
     }
 
     private AuthResponse toResponse(AuthService.AuthResult result) {
@@ -169,7 +176,8 @@ public class AuthController {
                 u.getTelefono(), u.getRut(), u.getDireccion(),
                 u.getInicioResidencia() != null ? u.getInicioResidencia().toString() : null,
                 u.getEstadoValidacion() != null ? u.getEstadoValidacion().name() : "PENDIENTE",
-                u.isNotificacionesActivas());
+                u.isNotificacionesActivas(),
+                u.isAccesoAprobado());
     }
 
     public record GoogleAuthRequest(String idToken) {}
@@ -179,11 +187,13 @@ public class AuthController {
     public record ResetRequest(String token, String password) {}
     public record ProfileUpdateRequest(String name, String telefono, boolean notificacionesActivas) {}
     public record VecinoUpdateRequest(String name, String telefono, String direccion, String email) {}
+    public record AccesoRequest(boolean aprobado) {}
     public record AuthResponse(String token, UserDto user) {}
     public record UserDto(String email, String name, String role, String tenantId) {}
     public record VecinoDto(UUID id, String email, String name, String role, String estadoValidacion,
-                            String telefono, String rut, String direccion, String inicioResidencia) {}
+                            String telefono, String rut, String direccion, String inicioResidencia,
+                            boolean accesoAprobado) {}
     public record ProfileDto(String email, String name, String role, String tenantId,
                              String telefono, String rut, String direccion, String inicioResidencia,
-                             String estadoValidacion, boolean notificacionesActivas) {}
+                             String estadoValidacion, boolean notificacionesActivas, boolean accesoAprobado) {}
 }

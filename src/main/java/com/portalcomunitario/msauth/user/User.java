@@ -57,6 +57,9 @@ public class User {
     @Column(name = "notificaciones_activas", nullable = false)
     private boolean notificacionesActivas;
 
+    @Column(name = "acceso_aprobado", nullable = false)
+    private boolean accesoAprobado;
+
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 
@@ -99,4 +102,7 @@ public class User {
     public void setEstadoValidacion(EstadoValidacion estadoValidacion) { this.estadoValidacion = estadoValidacion; }
     public boolean isNotificacionesActivas() { return notificacionesActivas; }
     public void setNotificacionesActivas(boolean notificacionesActivas) { this.notificacionesActivas = notificacionesActivas; }
+
+    public boolean isAccesoAprobado() { return accesoAprobado; }
+    public void setAccesoAprobado(boolean accesoAprobado) { this.accesoAprobado = accesoAprobado; }
 }

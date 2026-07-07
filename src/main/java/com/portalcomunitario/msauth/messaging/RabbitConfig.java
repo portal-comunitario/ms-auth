@@ -21,6 +21,7 @@ public class RabbitConfig {
     // Routing keys que publica ms-auth
     public static final String RK_CERTIFICADO_EMITIDO = "certificado.emitido";
     public static final String RK_PASSWORD_RESET = "password.reset";
+    public static final String RK_VECINO_REGISTRADO = "vecino.registrado";
 
     @Bean
     public TopicExchange portalEventsExchange() {

@@ -72,7 +72,8 @@ public class AuthService {
         if (name == null || name.isBlank()) name = email;
         final String resolvedName = name;
 
-        User user = userRepository.findByEmail(email).orElseGet(() -> {
+        java.util.Optional<User> existente = userRepository.findByEmail(email);
+        User user = existente.orElseGet(() -> {
             User nuevo = new User();
             nuevo.setEmail(email);
             nuevo.setName(resolvedName);
@@ -80,6 +81,9 @@ public class AuthService {
             nuevo.setTenantId(null);
             return userRepository.save(nuevo);
         });
+        if (existente.isEmpty()) {
+            publicarVecinoRegistrado(user);
+        }
 
         return new AuthResult(generateJwt(user), user);
     }
@@ -102,6 +106,7 @@ public class AuthService {
         user.setTenantId(null);
         user.setPasswordHash(passwordEncoder.encode(password));
         user = userRepository.save(user);
+        publicarVecinoRegistrado(user);
         return new AuthResult(generateJwt(user), user);
     }
 
@@ -178,6 +183,29 @@ public class AuthService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Vecino no encontrado"));
         u.setEstadoValidacion(estado);
         return userRepository.save(u);
+    }
+
+    public User setAcceso(UUID id, boolean aprobado) {
+        User u = userRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Vecino no encontrado"));
+        u.setAccesoAprobado(aprobado);
+        return userRepository.save(u);
+    }
+
+    /** Avisa a los dirigentes que un vecino nuevo espera aprobación de acceso. */
+    private void publicarVecinoRegistrado(User nuevo) {
+        java.util.List<Destinatario> admins = userRepository.findAll().stream()
+                .filter(u -> u.getRole() == User.Role.COMMUNITY_ADMIN || u.getRole() == User.Role.PLATFORM_ADMIN)
+                .map(a -> new Destinatario(a.getName(), a.getEmail(), a.getTelefono(), true))
+                .toList();
+        if (admins.isEmpty()) return;
+        NotificacionEvento evento = new NotificacionEvento(
+                "VECINO_REGISTRADO",
+                "Nuevo vecino por aprobar",
+                "El vecino " + nuevo.getName() + " (" + nuevo.getEmail() + ") se registró y está en revisión. "
+                        + "Apruébalo en Administración › Gestión de vecinos.",
+                admins);
+        notificacionPublisher.publicar(RabbitConfig.RK_VECINO_REGISTRADO, evento);
     }
 
     public User updateVecino(UUID id, String name, String telefono, String direccion, String email) {
@@ -268,6 +296,7 @@ public class AuthService {
                 .claim("email", user.getEmail())
                 .claim("name", user.getName())
                 .claim("role", user.getRole().name())
+                .claim("acceso", user.isAccesoAprobado())
                 .claim("tenantId", user.getTenantId())
                 .issuedAt(now)
                 .expiration(expiration)
