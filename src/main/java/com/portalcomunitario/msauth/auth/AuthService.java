@@ -180,6 +180,29 @@ public class AuthService {
         return userRepository.save(u);
     }
 
+    public User updateVecino(UUID id, String name, String telefono, String direccion, String email) {
+        User u = userRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Vecino no encontrado"));
+        if (name != null && !name.isBlank()) u.setName(name.trim());
+        u.setTelefono(blankToNull(telefono));
+        u.setDireccion(blankToNull(direccion));
+        if (email != null && !email.isBlank()) {
+            String norm = normalizeEmail(email);
+            if (!norm.equals(u.getEmail()) && userRepository.existsByEmail(norm)) {
+                throw new ResponseStatusException(HttpStatus.CONFLICT, "Ya existe una cuenta con ese correo");
+            }
+            u.setEmail(norm);
+        }
+        return userRepository.save(u);
+    }
+
+    public void deleteVecino(UUID id) {
+        if (!userRepository.existsById(id)) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Vecino no encontrado");
+        }
+        userRepository.deleteById(id);
+    }
+
     /** Contactos + consentimiento, filtrados por emails (coma) o tenantId; sin filtro = todos. */
     public List<ContactoDto> listContactos(String emails, String tenantId) {
         java.util.stream.Stream<User> stream = userRepository.findAll().stream();

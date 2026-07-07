@@ -5,6 +5,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -118,6 +119,18 @@ public class AuthController {
         return toVecino(authService.setValidacion(id, User.EstadoValidacion.PENDIENTE));
     }
 
+    @PutMapping("/vecinos/{id}")
+    public VecinoDto editarVecino(@PathVariable UUID id, @RequestBody VecinoUpdateRequest req, Authentication auth) {
+        requireAdmin(auth);
+        return toVecino(authService.updateVecino(id, req.name(), req.telefono(), req.direccion(), req.email()));
+    }
+
+    @DeleteMapping("/vecinos/{id}")
+    public void eliminarVecino(@PathVariable UUID id, Authentication auth) {
+        requireAdmin(auth);
+        authService.deleteVecino(id);
+    }
+
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<Map<String, String>> handleInvalidToken(IllegalArgumentException ex) {
         String message = ex.getMessage() != null ? ex.getMessage() : "Solicitud inválida";
@@ -165,6 +178,7 @@ public class AuthController {
     public record ForgotRequest(String email) {}
     public record ResetRequest(String token, String password) {}
     public record ProfileUpdateRequest(String name, String telefono, boolean notificacionesActivas) {}
+    public record VecinoUpdateRequest(String name, String telefono, String direccion, String email) {}
     public record AuthResponse(String token, UserDto user) {}
     public record UserDto(String email, String name, String role, String tenantId) {}
     public record VecinoDto(UUID id, String email, String name, String role, String estadoValidacion,
