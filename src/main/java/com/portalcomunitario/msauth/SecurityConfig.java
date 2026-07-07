@@ -28,7 +28,7 @@ public class SecurityConfig {
     @Order(1)
     public SecurityFilterChain publicFilterChain(HttpSecurity http) throws Exception {
         http
-            .securityMatcher("/auth/google", "/auth/register", "/auth/login", "/auth/forgot", "/auth/reset", "/auth/contactos", "/actuator/health")
+            .securityMatcher("/auth/google", "/auth/register", "/auth/login", "/auth/forgot", "/auth/reset", "/auth/contactos", "/internal/**", "/actuator/health")
             .cors(Customizer.withDefaults())
             .authorizeHttpRequests(auth -> auth.anyRequest().permitAll())
             .csrf(csrf -> csrf.disable())
