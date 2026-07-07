@@ -10,7 +10,11 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -26,8 +30,22 @@ public class AuthController {
 
     private final AuthService authService;
 
+    @Value("${app.internal.token:portal-internal}")
+    private String internalToken;
+
     public AuthController(AuthService authService) {
         this.authService = authService;
+    }
+
+    /** Contactos + consentimiento para ms-notifications. Uso interno: requiere token compartido. */
+    @GetMapping("/contactos")
+    public java.util.List<ContactoDto> contactos(@RequestParam(required = false) String emails,
+                                                 @RequestParam(required = false) String tenantId,
+                                                 @RequestHeader(value = "X-Internal-Token", required = false) String token) {
+        if (internalToken == null || !internalToken.equals(token)) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Token interno inválido");
+        }
+        return authService.listContactos(emails, tenantId);
     }
 
     // ── Google OAuth ────────────────────────────────────────────

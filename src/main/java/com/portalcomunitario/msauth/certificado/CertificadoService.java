@@ -2,6 +2,10 @@ package com.portalcomunitario.msauth.certificado;
 
 import com.portalcomunitario.msauth.user.User;
 import com.portalcomunitario.msauth.user.UserRepository;
+import com.portalcomunitario.msauth.messaging.Destinatario;
+import com.portalcomunitario.msauth.messaging.NotificacionEvento;
+import com.portalcomunitario.msauth.messaging.NotificacionPublisher;
+import com.portalcomunitario.msauth.messaging.RabbitConfig;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -24,6 +28,7 @@ public class CertificadoService {
     private final String junta;
     private final String sede;
     private final String comuna;
+    private final NotificacionPublisher notificacionPublisher;
 
     public CertificadoService(SolicitudCertificadoRepository solicitudRepo,
                               CertificadoArchivoRepository archivoRepo,
@@ -31,7 +36,8 @@ public class CertificadoService {
                               PdfCertificadoGenerator pdfGenerator,
                               @Value("${app.community.junta:Junta de Vecinos Villa Las Flores}") String junta,
                               @Value("${app.community.sede:Av. Lo Errázuriz 3940}") String sede,
-                              @Value("${app.community.comuna:Maipú}") String comuna) {
+                              @Value("${app.community.comuna:Maipú}") String comuna,
+                              NotificacionPublisher notificacionPublisher) {
         this.solicitudRepo = solicitudRepo;
         this.archivoRepo = archivoRepo;
         this.userRepository = userRepository;
@@ -39,6 +45,7 @@ public class CertificadoService {
         this.junta = junta;
         this.sede = sede;
         this.comuna = comuna;
+        this.notificacionPublisher = notificacionPublisher;
     }
 
     public SolicitudCertificado crear(String email, String motivo, String rut, String direccion,
@@ -124,6 +131,15 @@ public class CertificadoService {
             if (s.getDireccion() != null && !s.getDireccion().isBlank()) vecino.setDireccion(s.getDireccion());
             if (s.getRut() != null && !s.getRut().isBlank()) vecino.setRut(s.getRut());
             userRepository.save(vecino);
+        }
+        if (vecino != null && vecino.getEmail() != null) {
+            NotificacionEvento evento = new NotificacionEvento(
+                    "CERTIFICADO_EMITIDO",
+                    "Tu certificado de residencia está listo",
+                    "Hola " + nombre + ", tu certificado de residencia (folio " + folio + ") ya fue emitido. "
+                            + "Puedes descargarlo desde el portal, en la sección Trámites.",
+                    java.util.List.of(new Destinatario(nombre, vecino.getEmail(), vecino.getTelefono(), true)));
+            notificacionPublisher.publicar(RabbitConfig.RK_CERTIFICADO_EMITIDO, evento);
         }
         return s;
     }

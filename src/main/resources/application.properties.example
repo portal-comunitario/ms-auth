@@ -29,3 +29,6 @@ spring.rabbitmq.username=guest
 spring.rabbitmq.password=guest
 # El broker es opcional en dev; no debe tumbar el health check.
 management.health.rabbit.enabled=false
+
+# Token compartido para llamadas internas servicio-a-servicio (ej. ms-notifications/ms-community -> /auth/contactos)
+app.internal.token=portal-internal-2026

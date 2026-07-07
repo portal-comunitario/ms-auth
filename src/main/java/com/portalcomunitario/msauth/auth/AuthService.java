@@ -8,6 +8,10 @@ import com.portalcomunitario.msauth.passwordreset.PasswordResetToken;
 import com.portalcomunitario.msauth.passwordreset.PasswordResetTokenRepository;
 import com.portalcomunitario.msauth.user.User;
 import com.portalcomunitario.msauth.user.UserRepository;
+import com.portalcomunitario.msauth.messaging.Destinatario;
+import com.portalcomunitario.msauth.messaging.NotificacionEvento;
+import com.portalcomunitario.msauth.messaging.NotificacionPublisher;
+import com.portalcomunitario.msauth.messaging.RabbitConfig;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
@@ -22,6 +26,7 @@ import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
 import java.time.LocalDateTime;
 import java.util.Collections;
+import java.util.List;
 import java.util.Date;
 import java.util.UUID;
 
@@ -35,6 +40,7 @@ public class AuthService {
     private final SecretKey jwtKey;
     private final long jwtExpirationMillis;
     private final String frontendUrl;
+    private final NotificacionPublisher notificacionPublisher;
 
     public AuthService(UserRepository userRepository,
                        PasswordResetTokenRepository resetTokenRepository,
@@ -42,7 +48,8 @@ public class AuthService {
                        @Value("${app.google.client-id}") String googleClientId,
                        @Value("${app.jwt.secret}") String jwtSecret,
                        @Value("${app.jwt.expiration}") long jwtExpirationMillis,
-                       @Value("${app.frontend.url:http://localhost:4200}") String frontendUrl) {
+                       @Value("${app.frontend.url:http://localhost:4200}") String frontendUrl,
+                       NotificacionPublisher notificacionPublisher) {
         this.userRepository = userRepository;
         this.resetTokenRepository = resetTokenRepository;
         this.passwordEncoder = passwordEncoder;
@@ -53,6 +60,7 @@ public class AuthService {
         this.jwtKey = Keys.hmacShaKeyFor(jwtSecret.getBytes(StandardCharsets.UTF_8));
         this.jwtExpirationMillis = jwtExpirationMillis;
         this.frontendUrl = frontendUrl;
+        this.notificacionPublisher = notificacionPublisher;
     }
 
     // ── Google OAuth ────────────────────────────────────────────
@@ -127,7 +135,15 @@ public class AuthService {
         prt.setExpiresAt(LocalDateTime.now().plusHours(1));
         prt.setUsed(false);
         resetTokenRepository.save(prt);
-        return frontendUrl + "/reset?token=" + prt.getToken();
+        String link = frontendUrl + "/reset?token=" + prt.getToken();
+        // Notificación transaccional (el propio usuario la pidió): forzamos envío.
+        NotificacionEvento evento = new NotificacionEvento(
+                "PASSWORD_RESET",
+                "Recuperación de contraseña",
+                "Hola " + user.getName() + ", para restablecer tu contraseña abre este enlace (válido 1 hora): " + link,
+                List.of(new Destinatario(user.getName(), user.getEmail(), user.getTelefono(), true)));
+        notificacionPublisher.publicar(RabbitConfig.RK_PASSWORD_RESET, evento);
+        return link;
     }
 
     // ── Recuperación: aplicar nueva contraseña ──────────────────
@@ -162,6 +178,20 @@ public class AuthService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Vecino no encontrado"));
         u.setEstadoValidacion(estado);
         return userRepository.save(u);
+    }
+
+    /** Contactos + consentimiento, filtrados por emails (coma) o tenantId; sin filtro = todos. */
+    public List<ContactoDto> listContactos(String emails, String tenantId) {
+        java.util.stream.Stream<User> stream = userRepository.findAll().stream();
+        if (emails != null && !emails.isBlank()) {
+            java.util.Set<String> set = java.util.Arrays.stream(emails.split(","))
+                    .map(this::normalizeEmail).filter(e -> e != null && !e.isBlank())
+                    .collect(java.util.stream.Collectors.toSet());
+            stream = stream.filter(u -> set.contains(u.getEmail()));
+        } else if (tenantId != null && !tenantId.isBlank()) {
+            stream = stream.filter(u -> tenantId.equals(u.getTenantId()));
+        }
+        return stream.map(u -> new ContactoDto(u.getEmail(), u.getName(), u.getTelefono(), u.isNotificacionesActivas())).toList();
     }
 
     // ── Perfil ────────────────────────────
