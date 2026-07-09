@@ -291,6 +291,10 @@ public class AuthService {
     private String generateJwt(User user) {
         Date now = new Date();
         Date expiration = new Date(now.getTime() + jwtExpirationMillis);
+        // La comunidad (schema) contra la que se autenticó queda grabada en el token.
+        // El guard rechaza el token si luego se usa contra otra comunidad.
+        String schema = com.portalcomunitario.msauth.tenant.TenantContext.getCurrentTenant();
+        if (schema == null || schema.isBlank()) schema = "public";
         return Jwts.builder()
                 .subject(user.getEmail())
                 .claim("email", user.getEmail())
@@ -298,6 +302,7 @@ public class AuthService {
                 .claim("role", user.getRole().name())
                 .claim("acceso", user.isAccesoAprobado())
                 .claim("tenantId", user.getTenantId())
+                .claim("schema", schema)
                 .issuedAt(now)
                 .expiration(expiration)
                 .signWith(jwtKey)
