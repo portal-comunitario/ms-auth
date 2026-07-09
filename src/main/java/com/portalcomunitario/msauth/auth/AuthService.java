@@ -2,8 +2,6 @@ package com.portalcomunitario.msauth.auth;
 
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
-import com.google.api.client.http.javanet.NetHttpTransport;
-import com.google.api.client.json.gson.GsonFactory;
 import com.portalcomunitario.msauth.passwordreset.PasswordResetToken;
 import com.portalcomunitario.msauth.passwordreset.PasswordResetTokenRepository;
 import com.portalcomunitario.msauth.user.User;
@@ -25,7 +23,6 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
 import java.time.LocalDateTime;
-import java.util.Collections;
 import java.util.List;
 import java.util.Date;
 import java.util.UUID;
@@ -45,7 +42,7 @@ public class AuthService {
     public AuthService(UserRepository userRepository,
                        PasswordResetTokenRepository resetTokenRepository,
                        PasswordEncoder passwordEncoder,
-                       @Value("${app.google.client-id}") String googleClientId,
+                       GoogleIdTokenVerifier googleVerifier,
                        @Value("${app.jwt.secret}") String jwtSecret,
                        @Value("${app.jwt.expiration}") long jwtExpirationMillis,
                        @Value("${app.frontend.url:http://localhost:4200}") String frontendUrl,
@@ -53,10 +50,7 @@ public class AuthService {
         this.userRepository = userRepository;
         this.resetTokenRepository = resetTokenRepository;
         this.passwordEncoder = passwordEncoder;
-        this.googleVerifier = new GoogleIdTokenVerifier.Builder(
-                new NetHttpTransport(), GsonFactory.getDefaultInstance())
-                .setAudience(Collections.singletonList(googleClientId))
-                .build();
+        this.googleVerifier = googleVerifier;
         this.jwtKey = Keys.hmacShaKeyFor(jwtSecret.getBytes(StandardCharsets.UTF_8));
         this.jwtExpirationMillis = jwtExpirationMillis;
         this.frontendUrl = frontendUrl;
