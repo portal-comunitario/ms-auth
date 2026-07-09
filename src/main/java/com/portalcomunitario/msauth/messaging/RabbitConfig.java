@@ -9,16 +9,11 @@ import org.springframework.amqp.support.converter.MessageConverter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-/**
- * Configuración de RabbitMQ para ms-auth (productor de eventos).
- * Publica en el exchange topic {@code portal.events} los eventos de certificado y reset de contraseña.
- */
 @Configuration
 public class RabbitConfig {
 
     public static final String EXCHANGE = "portal.events";
 
-    // Routing keys que publica ms-auth
     public static final String RK_CERTIFICADO_EMITIDO = "certificado.emitido";
     public static final String RK_PASSWORD_RESET = "password.reset";
     public static final String RK_VECINO_REGISTRADO = "vecino.registrado";

@@ -6,7 +6,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 
-/** Borra los certificados emitidos cuya vigencia (VALIDEZ_DIAS) ya expiró. */
 @Component
 public class CertificadoExpiracionScheduler {
 
@@ -19,7 +18,6 @@ public class CertificadoExpiracionScheduler {
         this.archivoRepo = archivoRepo;
     }
 
-    // Todos los días a las 03:00
     @Scheduled(cron = "0 0 3 * * *")
     @Transactional
     public void eliminarVencidos() {

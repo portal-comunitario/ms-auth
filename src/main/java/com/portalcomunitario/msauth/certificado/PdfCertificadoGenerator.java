@@ -25,7 +25,6 @@ import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.Locale;
 
-/** Genera el PDF del certificado de residencia (marco, logo y firmas en tinta azul). */
 @Component
 public class PdfCertificadoGenerator {
 
@@ -33,7 +32,7 @@ public class PdfCertificadoGenerator {
             DateTimeFormatter.ofPattern("d 'de' MMMM 'de' yyyy", new Locale("es", "CL"));
     private static final Color AZUL = new Color(0, 48, 135);
     private static final Color GRIS = new Color(90, 90, 90);
-    private static final int TINTA = 0x1E3A8A; // azul tinta
+    private static final int TINTA = 0x1E3A8A;
 
     public byte[] generar(String nombre, String rut, String direccion,
                           String folio, String junta, String sede, String comuna, String motivo) {
@@ -145,7 +144,6 @@ public class PdfCertificadoGenerator {
         } catch (Exception ignore) { /* sin logo */ }
     }
 
-    /** Celda con la firma (recoloreada a azul) sobre el espacio de firma. */
     private PdfPCell celdaFirmaImg(String recurso) {
         PdfPCell c = new PdfPCell();
         c.setBorder(Rectangle.NO_BORDER);
@@ -176,7 +174,6 @@ public class PdfCertificadoGenerator {
         return c;
     }
 
-    /** Convierte el trazo (negro/gris, sobre blanco o transparente) a tinta azul con fondo transparente. */
     private byte[] tintarAzul(byte[] png) throws Exception {
         BufferedImage src = ImageIO.read(new ByteArrayInputStream(png));
         if (src == null) return png;

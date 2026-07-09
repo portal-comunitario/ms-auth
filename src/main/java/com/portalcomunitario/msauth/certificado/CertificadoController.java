@@ -32,7 +32,6 @@ public class CertificadoController {
         this.service = service;
     }
 
-    // Vecino: crear solicitud con documentos
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public SolicitudCertificadoDto crear(@RequestParam(value = "motivo", required = false) String motivo,
                                          @RequestParam(value = "rut", required = false) String rut,
@@ -43,20 +42,17 @@ public class CertificadoController {
         return SolicitudCertificadoDto.from(service.crear(extractEmail(auth), motivo, rut, direccion, cedula, comprobante));
     }
 
-    // Vecino: mis solicitudes
     @GetMapping("/mias")
     public List<SolicitudCertificadoDto> mias(Authentication auth) {
         return service.misSolicitudes(extractEmail(auth)).stream().map(SolicitudCertificadoDto::from).toList();
     }
 
-    // Dirigente: cola de solicitudes pendientes
     @GetMapping("/pendientes")
     public List<SolicitudCertificadoDto> pendientes(Authentication auth) {
         requireAdmin(auth);
         return service.pendientes().stream().map(SolicitudCertificadoDto::from).toList();
     }
 
-    // Descarga de un archivo (dueño o dirigente)
     @GetMapping("/{id}/archivo/{tipo}")
     public ResponseEntity<byte[]> archivo(@PathVariable UUID id, @PathVariable String tipo, Authentication auth) {
         SolicitudCertificado s = service.get(id);
@@ -95,7 +91,6 @@ public class CertificadoController {
         return SolicitudCertificadoDto.from(service.rechazar(id, motivo));
     }
 
-    // ── helpers ──
     private String extractRole(Authentication auth) {
         if (auth instanceof JwtAuthenticationToken jwtAuth) {
             String r = jwtAuth.getToken().getClaimAsString("role");

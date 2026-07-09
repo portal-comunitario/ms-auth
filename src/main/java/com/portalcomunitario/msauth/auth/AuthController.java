@@ -49,26 +49,22 @@ public class AuthController {
         return authService.listContactos(emails, tenantId);
     }
 
-    // ── Google OAuth ────────────────────────────────────────────
     @PostMapping("/google")
     public ResponseEntity<AuthResponse> google(@RequestBody GoogleAuthRequest request) {
         String idToken = request != null ? request.idToken() : null;
         return ResponseEntity.ok(toResponse(authService.authenticate(idToken)));
     }
 
-    // ── Registro con correo/contraseña ──────────────────────────
     @PostMapping("/register")
     public ResponseEntity<AuthResponse> register(@RequestBody RegisterRequest request) {
         return ResponseEntity.ok(toResponse(authService.register(request.name(), request.email(), request.password())));
     }
 
-    // ── Login con correo/contraseña ─────────────────────────────
     @PostMapping("/login")
     public ResponseEntity<AuthResponse> login(@RequestBody LoginRequest request) {
         return ResponseEntity.ok(toResponse(authService.login(request.email(), request.password())));
     }
 
-    // ── Recuperación: solicitar enlace ──────────────────────────
     @PostMapping("/forgot")
     public ResponseEntity<Map<String, String>> forgot(@RequestBody ForgotRequest request) {
         String resetLink = authService.forgotPassword(request.email());
@@ -80,14 +76,12 @@ public class AuthController {
         return ResponseEntity.ok(body);
     }
 
-    // ── Recuperación: aplicar nueva contraseña ──────────────────
     @PostMapping("/reset")
     public ResponseEntity<Map<String, String>> reset(@RequestBody ResetRequest request) {
         authService.resetPassword(request.token(), request.password());
         return ResponseEntity.ok(Map.of("message", "Contraseña actualizada. Ya puedes iniciar sesión."));
     }
 
-    // ── Perfil del usuario autenticado ──────────────────────────
     @GetMapping("/me")
     public ResponseEntity<ProfileDto> me(Authentication auth) {
         return ResponseEntity.ok(toProfile(authService.getProfile(auth.getName())));
@@ -100,7 +94,6 @@ public class AuthController {
         return ResponseEntity.ok(toProfile(updated));
     }
 
-    // ── Gestión de vecinos (solo dirigentes) ────────────────────
     @GetMapping("/vecinos")
     public List<VecinoDto> vecinos(Authentication auth) {
         requireAdmin(auth);

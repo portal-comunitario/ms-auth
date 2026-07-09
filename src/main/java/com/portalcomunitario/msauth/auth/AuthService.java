@@ -63,7 +63,6 @@ public class AuthService {
         this.notificacionPublisher = notificacionPublisher;
     }
 
-    // ── Google OAuth ────────────────────────────────────────────
     public AuthResult authenticate(String googleIdToken) {
         GoogleIdToken.Payload payload = verifyGoogleToken(googleIdToken);
 
@@ -88,7 +87,6 @@ public class AuthService {
         return new AuthResult(generateJwt(user), user);
     }
 
-    // ── Registro con correo/contraseña ──────────────────────────
     public AuthResult register(String name, String email, String password) {
         email = normalizeEmail(email);
         if (email == null || password == null || password.length() < 8) {
@@ -110,7 +108,6 @@ public class AuthService {
         return new AuthResult(generateJwt(user), user);
     }
 
-    // ── Login con correo/contraseña ─────────────────────────────
     public AuthResult login(String email, String password) {
         email = normalizeEmail(email);
         User user = userRepository.findByEmail(email)
@@ -125,8 +122,6 @@ public class AuthService {
         return new AuthResult(generateJwt(user), user);
     }
 
-    // ── Recuperación: generar token (stub sin email) ────────────
-    /** Devuelve el enlace de reseteo (stub — se mostrará/logueará hasta integrar el envío de correo). */
     public String forgotPassword(String email) {
         email = normalizeEmail(email);
         User user = userRepository.findByEmail(email).orElse(null);
@@ -151,7 +146,6 @@ public class AuthService {
         return link;
     }
 
-    // ── Recuperación: aplicar nueva contraseña ──────────────────
     public void resetPassword(String token, String newPassword) {
         if (newPassword == null || newPassword.length() < 8) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "La contraseña debe tener al menos 8 caracteres");
@@ -169,7 +163,6 @@ public class AuthService {
         resetTokenRepository.save(prt);
     }
 
-    // ── Gestión de vecinos (dirigente) ──────────────────────────
     public java.util.List<User> listVecinos() {
         return userRepository.findAll().stream()
                 .sorted(java.util.Comparator
@@ -192,7 +185,6 @@ public class AuthService {
         return userRepository.save(u);
     }
 
-    /** Avisa a los dirigentes que un vecino nuevo espera aprobación de acceso. */
     private void publicarVecinoRegistrado(User nuevo) {
         java.util.List<Destinatario> admins = userRepository.findAll().stream()
                 .filter(u -> u.getRole() == User.Role.COMMUNITY_ADMIN || u.getRole() == User.Role.PLATFORM_ADMIN)
@@ -245,7 +237,6 @@ public class AuthService {
         return stream.map(u -> new ContactoDto(u.getEmail(), u.getName(), u.getTelefono(), u.isNotificacionesActivas())).toList();
     }
 
-    // ── Perfil ────────────────────────────
     public User getProfile(String email) {
         return userRepository.findByEmail(normalizeEmail(email))
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado"));
@@ -266,7 +257,6 @@ public class AuthService {
         return (v == null || v.isBlank()) ? null : v.trim();
     }
 
-    // ── Helpers ─────────────────────────────────────────────────
     private String normalizeEmail(String email) {
         return email == null ? null : email.trim().toLowerCase();
     }

@@ -11,7 +11,6 @@ import jakarta.persistence.Table;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
-/** Token de recuperación de contraseña (un solo uso, con expiración). */
 @Entity
 @Table(name = "password_reset_tokens")
 public class PasswordResetToken {

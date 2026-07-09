@@ -8,7 +8,6 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-/** Provisiona el schema de un tenant en ms-auth: migraciones de auth + creación del admin de la comunidad. */
 @Service
 public class TenantProvisioner {
 

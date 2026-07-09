@@ -11,7 +11,6 @@ import jakarta.persistence.Table;
 
 import java.util.UUID;
 
-/** Archivo asociado a una solicitud (cédula, comprobante o PDF emitido). Datos en BYTEA. */
 @Entity
 @Table(name = "certificado_archivos")
 public class CertificadoArchivo {
