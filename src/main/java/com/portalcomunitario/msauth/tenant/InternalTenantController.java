@@ -40,7 +40,7 @@ public class InternalTenantController {
                                      @RequestHeader(value = "X-Internal-Token", required = false) String token) {
         requireInternal(token);
         provisioner.crearAdmin(schema, req.email(), req.nombre(), req.password());
-        return Map.of("status", "ok", "schema", schema, "admin", req != null ? req.email() : "");
+        return Map.of("status", "ok", "schema", schema, "admin", req.email());
     }
 
     private void requireInternal(String token) {
