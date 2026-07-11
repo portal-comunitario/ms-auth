@@ -14,7 +14,10 @@ public class CorsConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOrigins(List.of("http://localhost:4200"));
+        // Patrón abierto: la app se autentica con JWT en el header Authorization (no cookies),
+        // así que CORS no es la barrera de seguridad. Permite localhost (dev) y cualquier
+        // origen desplegado (EIP HTTP, dominio HTTPS) sin tener que reconfigurar.
+        config.setAllowedOriginPatterns(List.of("*"));
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
         config.setAllowCredentials(true);
